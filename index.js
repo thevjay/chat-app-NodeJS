@@ -22,7 +22,7 @@ io.on('connection',(socket)=>{
         socket.join(data.roomid)
     })
 
-    socket.on('msg_send',async(data)=>{
+    socket.on('msg_send',async(data,callback)=>{
         console.log(data)
         //io.emit('msg_rcvd',data)
         //socket.emit('msg_rcvd',data)
@@ -32,11 +32,17 @@ io.on('connection',(socket)=>{
             user: data.username,
             content:data.msg
         })
-        io.to(data.roomid).emit('msg_rcvd',data)
+        // Send to others
+        socket.broadcast.to(data.roomid).emit('msg_rcvd',data);
+
+        // Acknowledge to sender
+        callback({ status :'ok',...data});  // Sends data back to sender
+
+        //io.to(data.roomid).emit('msg_rcvd',data)
      });
 
      socket.on('typing',(data)=>{
-        socket.broadcast.to(data.roomId).emit('someone_typing')
+        socket.broadcast.to(data.roomid).emit('someone_typing',{username:data.username})
         
      })
 })

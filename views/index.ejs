@@ -18,13 +18,15 @@
     <span id="typing">typing...</span>
     <button id="btn">send</button>
 
-    <ul id="msglist">
+    <ul id="msglist" style="list-style: none; padding: 0;">
       <% for(let i=0; i < chats.length; i++){ %>
         <tr>
           <td><%= chats[i].user %> : <%= chats[i].content %> </td>
         </tr>
       <% } %>
     </ul>
+<p id="typing" style="color: gray; font-style: italic; display: none;"></p>
+
 
     <script src="/socket.io/socket.io.js"></script>
 
@@ -48,10 +50,18 @@
           roomid: startchat.getAttribute('data-roomid')
       })
       btn.onclick = function exec() {
+
+        // Send with ack
         socket.emit("msg_send", {
           msg: inputMsg.value,
           username: username.value,
           roomid: startchat.getAttribute('data-roomid')
+        },(ack)=>{
+          // Append locally only after ack
+          const limsg = document.createElement("li");
+          limsg.innerHTML = `<b>${ack.username}</b>: ${ack.msg} <span style="color: blue;">✓</span>`;
+          msgList.appendChild(limsg);
+          inputMsg.value = "";
         });
       };
 
@@ -61,13 +71,16 @@
       //   })
       // }
 
+      // Receiving message from others
       socket.on("msg_rcvd", (data) => {
         let limsg = document.createElement("li");
-        limsg.innerText = `${data.username}: ${data.msg}`;
+        limsg.innerHTML = `<b>${data.username}</b>: ${data.msg}`;
         msgList.appendChild(limsg);
       });
 
+      // Typing indicator
       socket.on('someone_typing',(data)=>{
+        spanTyping.innerText = `${data.username} is typing...`;
         spanTyping.style.display = 'block';
         clearTimeout(receiveTypingId);
         receiveTypingId = setTimeout(()=>{
@@ -76,9 +89,9 @@
       })
 
       inputMsg.addEventListener('keypress',function(e){
-        
         socket.emit('typing',{
-          roomid: startchat.getAttribute('data-roomid')
+          roomid: startchat.getAttribute('data-roomid'),
+          username: username.value
         });
         clearTimeout(typingId)
          typingId = setTimeout(()=>{
